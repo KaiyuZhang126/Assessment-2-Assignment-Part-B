@@ -231,25 +231,30 @@ public sealed class RecipeManager : IRecipeManager
         return _instructionQueue.Dequeue();
     }
 
-    // Part B
-    public IReadOnlyList<Recipe> SearchByTitle(string searchText) =>
-        throw new NotImplementedException("Part B: implement SearchByTitle.");
+// Part B
+public IReadOnlyList<Recipe> SearchByTitle(string searchText)
+{
+    return _recipeCatalogue.Values
+        .Where(recipe =>
+            recipe.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+}
 
-    public IReadOnlyList<Recipe> SearchByIngredient(string searchText) =>
-        throw new NotImplementedException("Part B: implement SearchByIngredient.");
+public IReadOnlyList<Recipe> SearchByIngredient(string searchText) =>
+    throw new NotImplementedException("Part B: implement SearchByIngredient.");
 
-    public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count) =>
-        throw new NotImplementedException("Part B: implement GetHighestProteinRecipes.");
+public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count) =>
+    throw new NotImplementedException("Part B: implement GetHighestProteinRecipes.");
 
-    public bool AddSavedRecipe(int recipeId) =>
-        throw new NotImplementedException("Part B: implement AddSavedRecipe.");
+public bool AddSavedRecipe(int recipeId) =>
+    throw new NotImplementedException("Part B: implement AddSavedRecipe.");
 
-    public bool RemoveSavedRecipe(int recipeId) =>
-        throw new NotImplementedException("Part B: implement RemoveSavedRecipe.");
+public bool RemoveSavedRecipe(int recipeId) =>
+    throw new NotImplementedException("Part B: implement RemoveSavedRecipe.");
 
-    public bool IsRecipeSaved(int recipeId) =>
-        throw new NotImplementedException("Part B: implement IsRecipeSaved.");
+public bool IsRecipeSaved(int recipeId) =>
+    throw new NotImplementedException("Part B: implement IsRecipeSaved.");
 
-    public IReadOnlyList<int> GetSavedRecipes() =>
-        throw new NotImplementedException("Part B: implement GetSavedRecipes.");
+public IReadOnlyList<int> GetSavedRecipes() =>
+    throw new NotImplementedException("Part B: implement GetSavedRecipes.");
 }
