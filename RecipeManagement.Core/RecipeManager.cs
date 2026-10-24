@@ -240,8 +240,14 @@ public IReadOnlyList<Recipe> SearchByTitle(string searchText)
         .ToList();
 }
 
-public IReadOnlyList<Recipe> SearchByIngredient(string searchText) =>
-    throw new NotImplementedException("Part B: implement SearchByIngredient.");
+public IReadOnlyList<Recipe> SearchByIngredient(string searchText)
+{
+    return _recipeCatalogue.Values
+        .Where(recipe =>
+            recipe.Ingredients.Any(ingredient =>
+                ingredient.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+}
 
 public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count) =>
     throw new NotImplementedException("Part B: implement GetHighestProteinRecipes.");
