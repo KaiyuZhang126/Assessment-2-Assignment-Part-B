@@ -144,6 +144,49 @@ public sealed class RecipeManagerTests
         Assert.Equal(2, manager.RecipeCount);
     }
 
+
+[Fact]
+public void SearchByTitle_NoMatch_ReturnsEmptyList()
+{
+    // Arrange: Create a RecipeManager
+    var manager = CreateManager();
+
+    // Act: Search for a recipe that does not exist
+    var result = manager.SearchByTitle("Pizza");
+
+    // Assert: The result should be an empty list
+    Assert.Empty(result);
+}
+
+[Fact]
+public void SearchByTitle_CaseInsensitive_FindsRecipe()
+{
+    // Arrange: Create a RecipeManager
+    var manager = CreateManager();
+
+    // Act: Search using lowercase letters
+    var result = manager.SearchByTitle("recipe a");
+
+    // Assert: Only one recipe should be found
+    Assert.Single(result);
+
+    // Assert: The matching recipe should have ID 10
+    Assert.Equal(10, result[0].Id);
+}
+
+[Fact]
+public void SearchByTitle_PartialMatch_ReturnsTwoRecipes()
+{
+    // Arrange: Create a RecipeManager
+    var manager = CreateManager();
+
+    // Act: Search using a partial title
+    var result = manager.SearchByTitle("Recipe");
+
+    // Assert: Both recipes should be found
+    Assert.Equal(2, result.Count);
+}
+
     private static RecipeManager CreateManager()
     {
         return new RecipeManager(new[]
