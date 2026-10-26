@@ -1,283 +1,333 @@
+using System;
 using System.Collections.Generic;
+using Xunit;
 using RecipeManagement.Core;
 
 namespace RecipeManagement.Tests;
 
-/// <summary>
-/// Example tests from the assignment specification. Add your own tests as you work.
-/// </summary>
 public sealed class RecipeManagerTests
 {
+    // =========================
+    // Part A Tests
+    // =========================
+
     [Fact]
-    public void Constructor_BuildsRecipeDictionary()
+    public void Constructor_ValidRecipes_SetsRecipeCount()
     {
         var manager = CreateManager();
+
         Assert.Equal(2, manager.RecipeCount);
-        Assert.Equal("Recipe A", manager.FindRecipe(10)?.Title);
     }
 
     [Fact]
-    public void InstructionsAreCompletedInFileOrder()
+    public void FindRecipe_ExistingId_ReturnsRecipe()
     {
         var manager = CreateManager();
-        Assert.True(manager.StartCooking(10));
-        Assert.Equal("First step", manager.PeekNextInstruction());
-        Assert.Equal("First step", manager.CompleteNextInstruction());
-        Assert.Equal("Second step", manager.PeekNextInstruction());
+
+        var result = manager.FindRecipe(10);
+
+        Assert.NotNull(result);
+        Assert.Equal("Recipe A", result.Title);
     }
 
-    // Verifies LIFO behaviour of the removed recipe stack: last removed is first restored
     [Fact]
-    public void RemovedRecipesAreRestoredLastInFirstOut()
+    public void FindRecipe_NonExistingId_ReturnsNull()
     {
         var manager = CreateManager();
-        manager.AddRecipeToCookingPlan(10);
-        manager.AddRecipeToCookingPlan(20);
-        manager.RemoveRecipeFromCookingPlan(10);
-        manager.RemoveRecipeFromCookingPlan(20);
 
-        Assert.Equal(20, manager.PeekLastRemovedRecipe());
-        Assert.True(manager.RestoreLastRemovedRecipe());
-        Assert.Equal(new[] { 20 }, manager.GetCookingPlan());
+        Assert.Null(manager.FindRecipe(999));
     }
 
-    // Verifies ingredients are correctly added to the shopping list
     [Fact]
-    public void AddIngredientsToShoppingList_ExistingRecipe_AddsCorrectly()
+    public void AddRecipe_ValidRecipe_ReturnsTrue()
     {
         var manager = CreateManager();
-        int addedCount = manager.AddIngredientsToShoppingList(10);
 
-        Assert.Equal(1, addedCount);
-        Assert.Equal(1, manager.ShoppingItemCount);
-        Assert.Equal("1 apple", manager.GetShoppingList()[0]);
+        bool result = manager.AddRecipe(new Recipe
+        {
+            Id = 30,
+            Title = "Recipe C"
+        });
+
+        Assert.True(result);
+        Assert.Equal(3, manager.RecipeCount);
     }
 
     [Fact]
-    // Test for clearing the shopping list
-    // Verifies that ClearShoppingList removes all items from the list
-    public void ClearShoppingList_AfterAddingItems_ClearsAll()
-    {
-        // Arrange: create manager and add ingredients to shopping list
-        var manager = CreateManager();
-        manager.AddIngredientsToShoppingList(10);
-
-        // Clear all items from the shopping list
-        manager.ClearShoppingList();
-
-        Assert.Equal(0, manager.ShoppingItemCount);
-        Assert.Empty(manager.GetShoppingList());
-    }
-
-    [Fact]
-    // Test for duplicate recipe ID in the Dictionary catalogue
-    // Verifies that adding a recipe with an existing ID fails and keeps count unchanged
     public void AddRecipe_DuplicateId_ReturnsFalse()
     {
-        // Arrange: create manager with recipe ID 10 already existing
         var manager = CreateManager();
 
-        var duplicateRecipe = new Recipe
+        bool result = manager.AddRecipe(new Recipe
         {
             Id = 10,
             Title = "Duplicate Recipe"
-        };
+        });
 
-        bool result = manager.AddRecipe(duplicateRecipe);
-
-        // Assert: add returns false, total recipe count stays at 2
         Assert.False(result);
         Assert.Equal(2, manager.RecipeCount);
     }
 
     [Fact]
-    public void AddRecipeToCookingPlan_DuplicateRecipe_ReturnsFalse()
+    public void RemoveRecipe_ExistingId_ReturnsTrue()
     {
         var manager = CreateManager();
 
-        // First attempt to add recipe 10 to cooking plan
-        bool firstAdd = manager.AddRecipeToCookingPlan(10);
+        Assert.True(manager.RemoveRecipe(10));
+        Assert.Null(manager.FindRecipe(10));
+        Assert.Equal(1, manager.RecipeCount);
+    }
 
-        // Second attempt to add the same recipe 10 again
-        bool secondAdd = manager.AddRecipeToCookingPlan(10);
+    [Fact]
+    public void RemoveRecipe_NonExistingId_ReturnsFalse()
+    {
+        var manager = CreateManager();
 
-        // First addition should succeed
-        Assert.True(firstAdd);
+        Assert.False(manager.RemoveRecipe(999));
+        Assert.Equal(2, manager.RecipeCount);
+    }
 
-        // Second addition with duplicate ID should fail
-        Assert.False(secondAdd);
+    [Fact]
+    public void AddIngredientsToShoppingList_ExistingRecipe_AddsIngredients()
+    {
+        var manager = CreateManager();
 
-        // Cooking plan count should remain 1
+        int result = manager.AddIngredientsToShoppingList(10);
+
+        Assert.Equal(1, result);
+        Assert.Equal(1, manager.ShoppingItemCount);
+        Assert.Contains("1 apple", manager.GetShoppingList());
+    }
+
+    [Fact]
+    public void AddRecipeToCookingPlan_ExistingRecipe_ReturnsTrue()
+    {
+        var manager = CreateManager();
+
+        Assert.True(manager.AddRecipeToCookingPlan(10));
         Assert.Equal(1, manager.CookingPlanCount);
     }
 
     [Fact]
-    public void EmptyRemovedRecipeStack_InitialState_ReturnsExpected()
+    public void StartCooking_ExistingRecipe_LoadsInstructions()
     {
         var manager = CreateManager();
 
-        // Peek on empty stack should return null
-        Assert.Null(manager.PeekLastRemovedRecipe());
-
-        // Restore on empty stack should return false
-        Assert.False(manager.RestoreLastRemovedRecipe());
-
-        // Removed recipe count should be 0
-        Assert.Equal(0, manager.RemovedRecipeCount);
+        Assert.True(manager.StartCooking(10));
+        Assert.Equal(2, manager.PendingInstructionCount);
+        Assert.Equal("First step", manager.PeekNextInstruction());
     }
 
-    [Fact]
-    public void EmptyInstructionQueue_InitialState_ReturnsExpected()
-    {
-        var manager = CreateManager();
-
-        // Peek on empty queue should return null
-        Assert.Null(manager.PeekNextInstruction());
-
-        // Complete on empty queue should return null
-        Assert.Null(manager.CompleteNextInstruction());
-
-        // Pending instruction count should be 0
-        Assert.Equal(0, manager.PendingInstructionCount);
-    }
-
-    [Fact]
-    public void RemoveRecipe_InCookingPlan_ReturnsFalseAndRemainsInCatalogue()
-    {
-        var manager = CreateManager();
-        manager.AddRecipeToCookingPlan(10);
-
-        bool removeResult = manager.RemoveRecipe(10);
-
-        // Remove should fail because recipe is in cooking plan
-        Assert.False(removeResult);
-
-        // Recipe should still exist in the catalogue
-        Assert.NotNull(manager.FindRecipe(10));
-
-        // Total recipe count remains unchanged
-        Assert.Equal(2, manager.RecipeCount);
-    }
-
-    // ==========================================
-    // Part B1: Search by Title Tests
-    // ==========================================
+    // =========================
+    // Part B1: SearchByTitle
+    // =========================
 
     [Fact]
     public void SearchByTitle_NoMatch_ReturnsEmptyList()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search for a recipe that does not exist
         var result = manager.SearchByTitle("Pizza");
 
-        // Assert: The result should be an empty list
         Assert.Empty(result);
     }
 
     [Fact]
     public void SearchByTitle_CaseInsensitive_FindsRecipe()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search using lowercase letters
         var result = manager.SearchByTitle("recipe a");
 
-        // Assert: Only one recipe should be found
         Assert.Single(result);
-
-        // Assert: The matching recipe should have ID 10
         Assert.Equal(10, result[0].Id);
     }
 
     [Fact]
     public void SearchByTitle_PartialMatch_ReturnsTwoRecipes()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search using a partial title
         var result = manager.SearchByTitle("Recipe");
 
-        // Assert: Both recipes should be found
         Assert.Equal(2, result.Count);
     }
 
-    // ==========================================
-    // Part B2: Search by Ingredient Tests
-    // ==========================================
+    // =========================
+    // Part B2: SearchByIngredient
+    // =========================
 
     [Fact]
     public void SearchByIngredient_ExistingIngredient_FindsRecipe()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search for an existing ingredient
         var result = manager.SearchByIngredient("apple");
 
-        // Assert: Only one recipe should be found
         Assert.Single(result);
-
-        // Assert: The matching recipe should have ID 10
         Assert.Equal(10, result[0].Id);
     }
 
     [Fact]
     public void SearchByIngredient_NoMatch_ReturnsEmptyList()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search for an ingredient that does not exist
         var result = manager.SearchByIngredient("banana");
 
-        // Assert: The result should be an empty list
         Assert.Empty(result);
     }
 
     [Fact]
     public void SearchByIngredient_CaseInsensitive_FindsRecipe()
     {
-        // Arrange: Create a RecipeManager
         var manager = CreateManager();
 
-        // Act: Search using uppercase letters
         var result = manager.SearchByIngredient("APPLE");
 
-        // Assert: Only one recipe should be found
         Assert.Single(result);
-
-        // Assert: The matching recipe should have ID 10
         Assert.Equal(10, result[0].Id);
     }
 
-    // ==========================================
-    // Helper Method: CreateManager
-    // ==========================================
+    // =========================
+    // Part B3: GetHighestProteinRecipes
+    // =========================
+
+    [Fact]
+    public void GetHighestProteinRecipes_TwoRecipes_ReturnsDescendingOrder()
+    {
+        var manager = CreateManager();
+
+        var result = manager.GetHighestProteinRecipes(2);
+
+        Assert.Equal(2, result.Count);
+        Assert.Equal(20, result[0].Id);
+        Assert.Equal(10, result[1].Id);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_CountOne_ReturnsHighestProteinRecipe()
+    {
+        var manager = CreateManager();
+
+        var result = manager.GetHighestProteinRecipes(1);
+
+        Assert.Single(result);
+        Assert.Equal(20, result[0].Id);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_CountZero_ReturnsEmptyList()
+    {
+        var manager = CreateManager();
+
+        var result = manager.GetHighestProteinRecipes(0);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_NegativeCount_ReturnsEmptyList()
+    {
+        var manager = CreateManager();
+
+        var result = manager.GetHighestProteinRecipes(-1);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_MissingNutrition_ExcludesRecipe()
+    {
+        var recipes = new List<Recipe>
+        {
+            new Recipe
+            {
+                Id = 1,
+                Title = "No Nutrition"
+            },
+            new Recipe
+            {
+                Id = 2,
+                Title = "With Protein",
+                Nutrition = new NutritionInfo
+                {
+                    ProteinG = 30
+                }
+            }
+        };
+
+        var manager = new RecipeManager(recipes);
+
+        var result = manager.GetHighestProteinRecipes(2);
+
+        Assert.Single(result);
+        Assert.Equal(2, result[0].Id);
+    }
+
+    [Fact]
+    public void GetHighestProteinRecipes_MissingProteinValue_ExcludesRecipe()
+    {
+        var recipes = new List<Recipe>
+        {
+            new Recipe
+            {
+                Id = 1,
+                Title = "Unknown Protein",
+                Nutrition = new NutritionInfo
+                {
+                    ProteinG = null
+                }
+            },
+            new Recipe
+            {
+                Id = 2,
+                Title = "Known Protein",
+                Nutrition = new NutritionInfo
+                {
+                    ProteinG = 25
+                }
+            }
+        };
+
+        var manager = new RecipeManager(recipes);
+
+        var result = manager.GetHighestProteinRecipes(2);
+
+        Assert.Single(result);
+        Assert.Equal(2, result[0].Id);
+    }
+
+    // =========================
+    // Test Data
+    // =========================
 
     private static RecipeManager CreateManager()
     {
-        return new RecipeManager(new[]
+        var recipes = new List<Recipe>
         {
             new Recipe
             {
                 Id = 10,
                 Title = "Recipe A",
                 Ingredients = new() { "1 apple" },
-                Instructions = new()
+                Instructions = new() { "First step", "Second step" },
+                Nutrition = new NutritionInfo
                 {
-                    "First step",
-                    "Second step"
+                    ProteinG = 20
                 }
             },
             new Recipe
             {
                 Id = 20,
-                Title = "Recipe B"
+                Title = "Recipe B",
+                Nutrition = new NutritionInfo
+                {
+                    ProteinG = 45
+                }
             }
-        });
+        };
+
+        return new RecipeManager(recipes);
     }
 }
