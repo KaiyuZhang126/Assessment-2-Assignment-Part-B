@@ -11,22 +11,21 @@ namespace RecipeManagement.Core;
 public sealed class RecipeManager : IRecipeManager
 {
     // Recipe catalogue (Dictionary)
-    // Maps recipe ID to Recipe object for lookup by ID
     private readonly Dictionary<int, Recipe> _recipeCatalogue;
+
     // Shopping list (List)
-    // Stores all ingredient entries to purchase
     private readonly List<string> _shoppingList;
+
     // Cooking plan (LinkedList)
-    // Stores recipe IDs in cooking sequence
     private readonly LinkedList<int> _cookingPlan;
+
     // Remove / restore (Stack)
-    // Stores IDs removed from cooking plan, LIFO behaviour for restore
     private readonly Stack<int> _removedRecipesStack;
+
     // Cooking instructions (Queue)
-    // Stores step-by-step instructions for current recipe, FIFO execution
     private readonly Queue<string> _instructionQueue;
 
-    // Initialises the manager with input validation and builds the recipe catalogue
+    // Constructor
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
         if (recipes == null)
@@ -41,27 +40,47 @@ public sealed class RecipeManager : IRecipeManager
         foreach (Recipe recipe in recipes)
         {
             if (recipe == null)
-                throw new ArgumentException("Recipe collection contains null item.", nameof(recipes));
+                throw new ArgumentException(
+                    "Recipe collection contains null item.",
+                    nameof(recipes));
+
             if (recipe.Id <= 0)
-                throw new ArgumentException($"Recipe ID must be positive: {recipe.Id}", nameof(recipes));
+                throw new ArgumentException(
+                    $"Recipe ID must be positive: {recipe.Id}",
+                    nameof(recipes));
+
             if (string.IsNullOrWhiteSpace(recipe.Title))
-                throw new ArgumentException($"Recipe title cannot be blank (ID: {recipe.Id})", nameof(recipes));
+                throw new ArgumentException(
+                    $"Recipe title cannot be blank (ID: {recipe.Id})",
+                    nameof(recipes));
+
             if (_recipeCatalogue.ContainsKey(recipe.Id))
-                throw new ArgumentException($"Duplicate recipe ID: {recipe.Id}", nameof(recipes));
+                throw new ArgumentException(
+                    $"Duplicate recipe ID: {recipe.Id}",
+                    nameof(recipes));
 
             _recipeCatalogue.Add(recipe.Id, recipe);
         }
     }
 
-    // Read-only count properties for each collection
+    // =========================
+    // Part A: Count Properties
+    // =========================
+
     public int RecipeCount => _recipeCatalogue.Count;
+
     public int ShoppingItemCount => _shoppingList.Count;
+
     public int CookingPlanCount => _cookingPlan.Count;
+
     public int PendingInstructionCount => _instructionQueue.Count;
+
     public int RemovedRecipeCount => _removedRecipesStack.Count;
 
-    // Adds a new recipe to the catalogue
-    // Returns true if added successfully; false if ID is invalid, title is blank or ID already exists
+    // =========================
+    // Part A: Recipe Catalogue
+    // =========================
+
     public bool AddRecipe(Recipe recipe)
     {
         if (recipe == null)
@@ -74,20 +93,17 @@ public sealed class RecipeManager : IRecipeManager
             return false;
 
         _recipeCatalogue.Add(recipe.Id, recipe);
+
         return true;
     }
 
-    // Looks up a recipe by ID
-    // Returns matching recipe if found; null if ID does not exist
     public Recipe? FindRecipe(int recipeId)
     {
         _recipeCatalogue.TryGetValue(recipeId, out Recipe? recipe);
+
         return recipe;
     }
 
-    // Removes a recipe from the catalogue
-    // Business rule: a recipe in the cooking plan cannot be removed
-    // Returns true if removed; false if ID does not exist or is in cooking plan
     public bool RemoveRecipe(int recipeId)
     {
         if (!_recipeCatalogue.ContainsKey(recipeId))
@@ -97,27 +113,32 @@ public sealed class RecipeManager : IRecipeManager
             return false;
 
         _recipeCatalogue.Remove(recipeId);
+
         return true;
     }
 
-    // Adds all ingredients of a recipe to the shopping list
-    // Returns number of ingredients added; 0 if recipe not found or has no ingredients
+    // =========================
+    // Part A: Shopping List
+    // =========================
+
     public int AddIngredientsToShoppingList(int recipeId)
     {
         Recipe? recipe = FindRecipe(recipeId);
+
         if (recipe == null || recipe.Ingredients == null)
             return 0;
 
         int addedCount = 0;
+
         foreach (string ingredient in recipe.Ingredients)
         {
             _shoppingList.Add(ingredient);
             addedCount++;
         }
+
         return addedCount;
     }
 
-    // Returns a read-only view of the shopping list
     public IReadOnlyList<string> GetShoppingList()
     {
         return _shoppingList.AsReadOnly();
@@ -128,8 +149,10 @@ public sealed class RecipeManager : IRecipeManager
         _shoppingList.Clear();
     }
 
-    // Adds a recipe to the end of the cooking plan
-    // Returns true if added; false if ID does not exist or is already in plan
+    // =========================
+    // Part A: Cooking Plan
+    // =========================
+
     public bool AddRecipeToCookingPlan(int recipeId)
     {
         if (!_recipeCatalogue.ContainsKey(recipeId))
@@ -139,31 +162,27 @@ public sealed class RecipeManager : IRecipeManager
             return false;
 
         _cookingPlan.AddLast(recipeId);
+
         return true;
     }
 
-    // Removes a recipe from the cooking plan
-    // On successful removal, pushes the ID onto the removed stack
-    // Returns true if removed; false if ID is not in the plan
     public bool RemoveRecipeFromCookingPlan(int recipeId)
     {
         bool removed = _cookingPlan.Remove(recipeId);
+
         if (!removed)
             return false;
 
         _removedRecipesStack.Push(recipeId);
+
         return true;
     }
 
-    // Returns a read-only copy of the cooking plan in current order
     public IReadOnlyList<int> GetCookingPlan()
     {
         return _cookingPlan.ToList().AsReadOnly();
     }
 
-    // Restores the most recently removed recipe to the end of the cooking plan
-    // LIFO behaviour: last removed = first restored
-    // Returns true if restored; false if stack is empty, ID not in catalogue or already in plan
     public bool RestoreLastRemovedRecipe()
     {
         if (_removedRecipesStack.Count == 0)
@@ -171,7 +190,8 @@ public sealed class RecipeManager : IRecipeManager
 
         int recipeId = _removedRecipesStack.Pop();
 
-        if (_recipeCatalogue.ContainsKey(recipeId) && !_cookingPlan.Contains(recipeId))
+        if (_recipeCatalogue.ContainsKey(recipeId) &&
+            !_cookingPlan.Contains(recipeId))
         {
             _cookingPlan.AddLast(recipeId);
             return true;
@@ -180,8 +200,6 @@ public sealed class RecipeManager : IRecipeManager
         return false;
     }
 
-    // Peeks the most recently removed recipe ID without popping it
-    // Returns top of stack ID; null if stack is empty
     public int? PeekLastRemovedRecipe()
     {
         if (_removedRecipesStack.Count == 0)
@@ -190,15 +208,19 @@ public sealed class RecipeManager : IRecipeManager
         return _removedRecipesStack.Peek();
     }
 
-    // Starts cooking a recipe, clears current queue and loads instructions in order
-    // Returns true if started; false if recipe not found or has no instructions
+    // =========================
+    // Part A: Cooking Instructions
+    // =========================
+
     public bool StartCooking(int recipeId)
     {
         Recipe? recipe = FindRecipe(recipeId);
+
         if (recipe == null)
             return false;
 
-        if (recipe.Instructions == null || recipe.Instructions.Count == 0)
+        if (recipe.Instructions == null ||
+            recipe.Instructions.Count == 0)
             return false;
 
         _instructionQueue.Clear();
@@ -207,11 +229,10 @@ public sealed class RecipeManager : IRecipeManager
         {
             _instructionQueue.Enqueue(instruction);
         }
+
         return true;
     }
 
-    // Peeks the next cooking instruction without dequeuing it
-    // Returns next instruction; null if queue is empty
     public string? PeekNextInstruction()
     {
         if (_instructionQueue.Count == 0)
@@ -220,9 +241,6 @@ public sealed class RecipeManager : IRecipeManager
         return _instructionQueue.Peek();
     }
 
-    // Completes and removes the next cooking instruction
-    // FIFO behaviour: first added = first executed
-    // Returns next instruction; null if queue is empty
     public string? CompleteNextInstruction()
     {
         if (_instructionQueue.Count == 0)
@@ -231,36 +249,77 @@ public sealed class RecipeManager : IRecipeManager
         return _instructionQueue.Dequeue();
     }
 
-// Part B
-public IReadOnlyList<Recipe> SearchByTitle(string searchText)
-{
-    return _recipeCatalogue.Values
-        .Where(recipe =>
-            recipe.Title.Contains(searchText, StringComparison.OrdinalIgnoreCase))
-        .ToList();
-}
+    // =========================
+    // Part B1: Search By Title
+    // =========================
 
-public IReadOnlyList<Recipe> SearchByIngredient(string searchText)
-{
-    return _recipeCatalogue.Values
-        .Where(recipe =>
-            recipe.Ingredients.Any(ingredient =>
-                ingredient.Contains(searchText, StringComparison.OrdinalIgnoreCase)))
-        .ToList();
-}
+    public IReadOnlyList<Recipe> SearchByTitle(string searchText)
+    {
+        return _recipeCatalogue.Values
+            .Where(recipe =>
+                recipe.Title.Contains(
+                    searchText,
+                    StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
 
-public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count) =>
-    throw new NotImplementedException("Part B: implement GetHighestProteinRecipes.");
+    // =========================
+    // Part B2: Search By Ingredient
+    // =========================
 
-public bool AddSavedRecipe(int recipeId) =>
-    throw new NotImplementedException("Part B: implement AddSavedRecipe.");
+    public IReadOnlyList<Recipe> SearchByIngredient(string searchText)
+    {
+        return _recipeCatalogue.Values
+            .Where(recipe =>
+                recipe.Ingredients.Any(ingredient =>
+                    ingredient.Contains(
+                        searchText,
+                        StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
 
-public bool RemoveSavedRecipe(int recipeId) =>
-    throw new NotImplementedException("Part B: implement RemoveSavedRecipe.");
+    // =========================
+    // Part B3: Highest Protein Recipes
+    // =========================
 
-public bool IsRecipeSaved(int recipeId) =>
-    throw new NotImplementedException("Part B: implement IsRecipeSaved.");
+    public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count)
+    {
+        // Return empty list if count is zero or negative
+        if (count <= 0)
+        {
+            return new List<Recipe>();
+        }
 
-public IReadOnlyList<int> GetSavedRecipes() =>
-    throw new NotImplementedException("Part B: implement GetSavedRecipes.");
+        // Filter recipes with valid protein information,
+        // sort by protein descending, and take the top count.
+        return _recipeCatalogue.Values
+            .Where(recipe =>
+                recipe.Nutrition != null &&
+                recipe.Nutrition.ProteinG.HasValue)
+            .OrderByDescending(recipe =>
+                recipe.Nutrition!.ProteinG)
+            .Take(count)
+            .ToList();
+    }
+
+    // =========================
+    // Part B4: Saved Recipes
+    // Not implemented yet
+    // =========================
+
+    public bool AddSavedRecipe(int recipeId) =>
+        throw new NotImplementedException(
+            "Part B: implement AddSavedRecipe.");
+
+    public bool RemoveSavedRecipe(int recipeId) =>
+        throw new NotImplementedException(
+            "Part B: implement RemoveSavedRecipe.");
+
+    public bool IsRecipeSaved(int recipeId) =>
+        throw new NotImplementedException(
+            "Part B: implement IsRecipeSaved.");
+
+    public IReadOnlyList<int> GetSavedRecipes() =>
+        throw new NotImplementedException(
+            "Part B: implement GetSavedRecipes.");
 }
