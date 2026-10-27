@@ -5,11 +5,15 @@ using System.Linq;
 namespace RecipeManagement.Core;
 
 /// <summary>
-/// Implements Part A functionality using five collection types:
-/// Dictionary, List, LinkedList, Stack and Queue.
+/// Implements recipe management functionality using
+/// Dictionary, List, LinkedList, Stack, Queue and HashSet.
 /// </summary>
 public sealed class RecipeManager : IRecipeManager
 {
+    // =========================
+    // Fields
+    // =========================
+
     // Recipe catalogue (Dictionary)
     private readonly Dictionary<int, Recipe> _recipeCatalogue;
 
@@ -19,13 +23,19 @@ public sealed class RecipeManager : IRecipeManager
     // Cooking plan (LinkedList)
     private readonly LinkedList<int> _cookingPlan;
 
-    // Remove / restore (Stack)
+    // Removed recipes (Stack)
     private readonly Stack<int> _removedRecipesStack;
 
     // Cooking instructions (Queue)
     private readonly Queue<string> _instructionQueue;
 
+    // Saved recipes (HashSet)
+    private readonly HashSet<int> _savedRecipeIds;
+
+    // =========================
     // Constructor
+    // =========================
+
     public RecipeManager(IEnumerable<Recipe> recipes)
     {
         if (recipes == null)
@@ -36,6 +46,7 @@ public sealed class RecipeManager : IRecipeManager
         _cookingPlan = new LinkedList<int>();
         _removedRecipesStack = new Stack<int>();
         _instructionQueue = new Queue<string>();
+        _savedRecipeIds = new HashSet<int>();
 
         foreach (Recipe recipe in recipes)
         {
@@ -284,14 +295,11 @@ public sealed class RecipeManager : IRecipeManager
 
     public IReadOnlyList<Recipe> GetHighestProteinRecipes(int count)
     {
-        // Return empty list if count is zero or negative
         if (count <= 0)
         {
             return new List<Recipe>();
         }
 
-        // Filter recipes with valid protein information,
-        // sort by protein descending, and take the top count.
         return _recipeCatalogue.Values
             .Where(recipe =>
                 recipe.Nutrition != null &&
@@ -304,22 +312,30 @@ public sealed class RecipeManager : IRecipeManager
 
     // =========================
     // Part B4: Saved Recipes
-    // Not implemented yet
     // =========================
 
-    public bool AddSavedRecipe(int recipeId) =>
-        throw new NotImplementedException(
-            "Part B: implement AddSavedRecipe.");
+    public bool AddSavedRecipe(int recipeId)
+    {
+        if (!_recipeCatalogue.ContainsKey(recipeId))
+        {
+            return false;
+        }
 
-    public bool RemoveSavedRecipe(int recipeId) =>
-        throw new NotImplementedException(
-            "Part B: implement RemoveSavedRecipe.");
+        return _savedRecipeIds.Add(recipeId);
+    }
 
-    public bool IsRecipeSaved(int recipeId) =>
-        throw new NotImplementedException(
-            "Part B: implement IsRecipeSaved.");
+    public bool RemoveSavedRecipe(int recipeId)
+    {
+        return _savedRecipeIds.Remove(recipeId);
+    }
 
-    public IReadOnlyList<int> GetSavedRecipes() =>
-        throw new NotImplementedException(
-            "Part B: implement GetSavedRecipes.");
+    public bool IsRecipeSaved(int recipeId)
+    {
+        return _savedRecipeIds.Contains(recipeId);
+    }
+
+    public IReadOnlyList<int> GetSavedRecipes()
+    {
+        return _savedRecipeIds.ToList();
+    }
 }
