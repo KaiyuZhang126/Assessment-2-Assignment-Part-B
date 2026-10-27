@@ -299,6 +299,97 @@ public sealed class RecipeManagerTests
     }
 
     // =========================
+    // Part B4: Saved Recipes
+    // =========================
+
+    [Fact]
+    public void AddSavedRecipe_ExistingRecipe_ReturnsTrue()
+    {
+        var manager = CreateManager();
+
+        bool result = manager.AddSavedRecipe(10);
+
+        Assert.True(result);
+        Assert.True(manager.IsRecipeSaved(10));
+        Assert.Contains(10, manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void AddSavedRecipe_DuplicateRecipe_ReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        bool firstResult = manager.AddSavedRecipe(10);
+        bool secondResult = manager.AddSavedRecipe(10);
+
+        Assert.True(firstResult);
+        Assert.False(secondResult);
+        Assert.Single(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void AddSavedRecipe_NonExistingRecipe_ReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        bool result = manager.AddSavedRecipe(999);
+
+        Assert.False(result);
+        Assert.Empty(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void RemoveSavedRecipe_ExistingSavedRecipe_ReturnsTrue()
+    {
+        var manager = CreateManager();
+
+        manager.AddSavedRecipe(10);
+
+        bool result = manager.RemoveSavedRecipe(10);
+
+        Assert.True(result);
+        Assert.False(manager.IsRecipeSaved(10));
+        Assert.Empty(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void RemoveSavedRecipe_NotSaved_ReturnsFalse()
+    {
+        var manager = CreateManager();
+
+        bool result = manager.RemoveSavedRecipe(10);
+
+        Assert.False(result);
+        Assert.Empty(manager.GetSavedRecipes());
+    }
+
+    [Fact]
+    public void IsRecipeSaved_SavedAndUnsavedRecipes_ReturnsCorrectStatus()
+    {
+        var manager = CreateManager();
+
+        manager.AddSavedRecipe(10);
+
+        Assert.True(manager.IsRecipeSaved(10));
+        Assert.False(manager.IsRecipeSaved(20));
+    }
+
+    [Fact]
+    public void GetSavedRecipes_TwoSavedRecipes_ReturnsBothIds()
+    {
+        var manager = CreateManager();
+
+        manager.AddSavedRecipe(10);
+        manager.AddSavedRecipe(20);
+
+        var result = manager.GetSavedRecipes();
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(10, result);
+        Assert.Contains(20, result);
+    }
+
+    // =========================
     // Test Data
     // =========================
 
