@@ -7,9 +7,9 @@ namespace RecipeManagement.Tests;
 
 public sealed class RecipeManagerTests
 {
-    // =========================
-    // Part A Tests
-    // =========================
+    // =====================================================
+    // Part A: Recipe Management Tests (10 Tests)
+    // =====================================================
 
     [Fact]
     public void Constructor_ValidRecipes_SetsRecipeCount()
@@ -35,7 +35,9 @@ public sealed class RecipeManagerTests
     {
         var manager = CreateManager();
 
-        Assert.Null(manager.FindRecipe(999));
+        var result = manager.FindRecipe(999);
+
+        Assert.Null(result);
     }
 
     [Fact]
@@ -73,7 +75,9 @@ public sealed class RecipeManagerTests
     {
         var manager = CreateManager();
 
-        Assert.True(manager.RemoveRecipe(10));
+        bool result = manager.RemoveRecipe(10);
+
+        Assert.True(result);
         Assert.Null(manager.FindRecipe(10));
         Assert.Equal(1, manager.RecipeCount);
     }
@@ -83,7 +87,9 @@ public sealed class RecipeManagerTests
     {
         var manager = CreateManager();
 
-        Assert.False(manager.RemoveRecipe(999));
+        bool result = manager.RemoveRecipe(999);
+
+        Assert.False(result);
         Assert.Equal(2, manager.RecipeCount);
     }
 
@@ -104,7 +110,9 @@ public sealed class RecipeManagerTests
     {
         var manager = CreateManager();
 
-        Assert.True(manager.AddRecipeToCookingPlan(10));
+        bool result = manager.AddRecipeToCookingPlan(10);
+
+        Assert.True(result);
         Assert.Equal(1, manager.CookingPlanCount);
     }
 
@@ -113,14 +121,16 @@ public sealed class RecipeManagerTests
     {
         var manager = CreateManager();
 
-        Assert.True(manager.StartCooking(10));
+        bool result = manager.StartCooking(10);
+
+        Assert.True(result);
         Assert.Equal(2, manager.PendingInstructionCount);
         Assert.Equal("First step", manager.PeekNextInstruction());
     }
 
-    // =========================
-    // Part B1: SearchByTitle
-    // =========================
+    // =====================================================
+    // Part B1: Search By Title (3 Tests)
+    // =====================================================
 
     [Fact]
     public void SearchByTitle_NoMatch_ReturnsEmptyList()
@@ -153,9 +163,9 @@ public sealed class RecipeManagerTests
         Assert.Equal(2, result.Count);
     }
 
-    // =========================
-    // Part B2: SearchByIngredient
-    // =========================
+    // =====================================================
+    // Part B2: Search By Ingredient (3 Tests)
+    // =====================================================
 
     [Fact]
     public void SearchByIngredient_ExistingIngredient_FindsRecipe()
@@ -189,9 +199,9 @@ public sealed class RecipeManagerTests
         Assert.Equal(10, result[0].Id);
     }
 
-    // =========================
-    // Part B3: GetHighestProteinRecipes
-    // =========================
+    // =====================================================
+    // Part B3: Highest Protein Recipes (6 Tests)
+    // =====================================================
 
     [Fact]
     public void GetHighestProteinRecipes_TwoRecipes_ReturnsDescendingOrder()
@@ -298,9 +308,9 @@ public sealed class RecipeManagerTests
         Assert.Equal(2, result[0].Id);
     }
 
-    // =========================
-    // Part B4: Saved Recipes
-    // =========================
+    // =====================================================
+    // Part B4: Saved Recipes (7 Tests)
+    // =====================================================
 
     [Fact]
     public void AddSavedRecipe_ExistingRecipe_ReturnsTrue()
@@ -389,9 +399,43 @@ public sealed class RecipeManagerTests
         Assert.Contains(20, result);
     }
 
-    // =========================
-    // Test Data
-    // =========================
+    // =====================================================
+    // Part B5: Integration Test (1 Test)
+    // =====================================================
+
+    [Fact]
+    public void SearchSaveAndRemoveRecipe_IntegrationTest()
+    {
+        // Arrange: Create a RecipeManager
+        var manager = CreateManager();
+
+        // Step 1: Search for Recipe A by title
+        var searchResults = manager.SearchByTitle("Recipe A");
+
+        // Verify that exactly one recipe was found
+        Assert.Single(searchResults);
+
+        // Get the ID of the found recipe
+        int recipeId = searchResults[0].Id;
+
+        // Step 2: Save the recipe
+        bool added = manager.AddSavedRecipe(recipeId);
+
+        // Verify the recipe was saved successfully
+        Assert.True(added);
+        Assert.True(manager.IsRecipeSaved(recipeId));
+
+        // Step 3: Remove the saved recipe
+        bool removed = manager.RemoveSavedRecipe(recipeId);
+
+        // Verify the recipe was removed successfully
+        Assert.True(removed);
+        Assert.False(manager.IsRecipeSaved(recipeId));
+    }
+
+    // =====================================================
+    // Test Data: CreateManager()
+    // =====================================================
 
     private static RecipeManager CreateManager()
     {
@@ -401,13 +445,21 @@ public sealed class RecipeManagerTests
             {
                 Id = 10,
                 Title = "Recipe A",
-                Ingredients = new() { "1 apple" },
-                Instructions = new() { "First step", "Second step" },
+                Ingredients = new()
+                {
+                    "1 apple"
+                },
+                Instructions = new()
+                {
+                    "First step",
+                    "Second step"
+                },
                 Nutrition = new NutritionInfo
                 {
                     ProteinG = 20
                 }
             },
+
             new Recipe
             {
                 Id = 20,
